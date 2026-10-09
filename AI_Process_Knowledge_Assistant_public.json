@@ -1,0 +1,1028 @@
+{
+  "name": "AI Process & Knowledge Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "dedf124e-3499-4221-aa31-e4d1846d52a7",
+              "name": "title",
+              "value": "={{ $json['Request Title'] }}",
+              "type": "string"
+            },
+            {
+              "id": "460427c9-2ee8-41e4-8dfd-74caaa07a97f",
+              "name": "description",
+              "value": "={{ $json['Request Description'] }}",
+              "type": "string"
+            },
+            {
+              "id": "c3d4be97-79de-4647-b7f7-c1293fb17474",
+              "name": "department",
+              "value": "={{ $json[\"Department\"].trim().replace(/\\s+/g, \" \") }}",
+              "type": "string"
+            },
+            {
+              "id": "736c2ba8-daf8-4eb5-982b-6750cfb8dc0e",
+              "name": "submitted_by",
+              "value": "={{ $json['Submitted by'] }}",
+              "type": "string"
+            },
+            {
+              "id": "11f63648-f396-4859-b391-4b5057dff33d",
+              "name": "submitted_at",
+              "value": "={{ $json.submittedAt }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        32,
+        -64
+      ],
+      "id": "c0d2aecf-960e-4804-b0f8-d058e75323dc",
+      "name": "Normalize Input"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1040,
+        192
+      ],
+      "id": "8bad084a-175f-4846-8e62-ea7901d0d46a",
+      "name": "Business Decision"
+    },
+    {
+      "parameters": {
+        "formTitle": "Automation Request",
+        "formDescription": "Submit a business process or automation request to have an AI analysis.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Request Title"
+            },
+            {
+              "fieldLabel": "Request Description",
+              "fieldType": "textarea"
+            },
+            {
+              "fieldLabel": "Department",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Customer Support"
+                  },
+                  {
+                    "option": "Sales"
+                  },
+                  {
+                    "option": "Finance"
+                  },
+                  {
+                    "option": "HR"
+                  },
+                  {
+                    "option": "IT/Operations"
+                  },
+                  {
+                    "option": "Others"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Submitted by",
+              "fieldType": "email"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        -256,
+        -64
+      ],
+      "id": "abc8e552-b9b7-4234-a868-4aa4e38268cb",
+      "name": "Automation Request Form"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "03baf490-c628-4dc7-a0e5-ce069cad98d0",
+              "leftValue": "={{ $json.output.needs_human_review }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1392,
+        -64
+      ],
+      "id": "e4baa273-8b9d-4091-b14d-c01a4c7e7fe8",
+      "name": "Needs human review?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const docs = [\n  {\n    id: \"automation-guidelines\",\n    title: \"Automation Guidelines\",\n    tags: [\"automation\", \"manual\", \"repetitive\", \"workflow\", \"ticket\"],\n    content: `\nRepetitive and rule-based tasks are strong candidates for automation.\nCustomer-facing automations should initially include human review.\nLow-confidence AI decisions should be escalated to a human.\nAutomations should have clear logging and error-handling mechanisms.\n    `.trim()\n  },\n\n  {\n    id: \"approved-tools\",\n    title: \"Approved Tools\",\n    tags: [\"jira\", \"n8n\", \"workflow\", \"integration\", \"automation\"],\n    content: `\nJira is the approved platform for work and task tracking.\nn8n is approved for workflow orchestration and API integrations.\nExternal AI services may only be used with non-sensitive test data during prototyping.\n    `.trim()\n  },\n\n  {\n  id: \"jira-label-guidelines\",\n  title: \"Jira Label Guidelines\",\n  tags: [\"jira\", \"labels\", \"metadata\", \"task\", \"automation\"],\n  content: `\nApproved Jira labels:\n\nDepartment:\n- customer-support\n- sales\n- finance\n- hr\n- it-operations\n- qa\n- front-end\n- back-end\n\nWork type:\n- ai-automation\n- process-improvement\n- knowledge-management\n\nStage:\n- discovery\n- pilot\n- production\n\nUse only labels from this approved list.\nChoose labels that reflect the department, work type, and current stage.\n  `.trim()\n},\n\n  {\n    id: \"support-process\",\n    title: \"Customer Support Process\",\n    tags: [\"support\", \"ticket\", \"customer\", \"queue\", \"triage\"],\n    content: `\nIncoming support tickets are currently reviewed manually.\nAgents classify tickets and assign them to the appropriate support queue.\nIncorrect routing can increase response times.\nCustomer Support owns the ticket-routing process.\n    `.trim()\n  },\n\n  {\n    id: \"previous-automation\",\n    title: \"Previous Automation Examples\",\n    tags: [\"ticket\", \"classification\", \"ai\", \"support\", \"confidence\"],\n    content: `\nA previous pilot used AI to classify incoming support requests.\nHigh-confidence classifications were routed automatically.\nLow-confidence classifications were sent to employees for review.\nThe pilot reduced manual triage effort while retaining human oversight.\n    `.trim()\n  }\n];\n\nreturn docs.map(doc => ({\n  json: doc\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        352,
+        -64
+      ],
+      "id": "f043a2d5-b9c7-44bf-b66a-d5c28ba832d2",
+      "name": "Mock Internal Knowledge base"
+    },
+    {
+      "parameters": {
+        "jsCode": "const request = $('Normalize Input').first().json;\n\nconst query = `\n${request.title}\n${request.description}\n${request.department}\n`.toLowerCase();\n\nconst docs = $input.all().map(item => item.json);\n\nconst scoredDocs = docs.map(doc => {\n  const score = doc.tags.reduce((total, tag) => {\n    return total + (query.includes(tag.toLowerCase()) ? 1 : 0);\n  }, 0);\n\n  return {\n    ...doc,\n    score\n  };\n});\n\nconst relevantDocs = scoredDocs\n  .filter(doc => doc.score > 0)\n  .sort((a, b) => b.score - a.score)\n  .slice(0, 3);\n\nconst jiraLabelPolicy = {\n  department: [\n    \"customer-support\",\n    \"sales\",\n    \"finance\",\n    \"hr\",\n    \"it-operations\"\n  ],\n  work_type: [\n    \"ai-automation\",\n    \"process-improvement\",\n    \"knowledge-management\"\n  ],\n  stage: [\n    \"discovery\",\n    \"pilot\",\n    \"production\"\n  ]\n};\n\nreturn [\n  {\n    json: {\n      request,\n      retrieved_knowledge: relevantDocs,\n      jira_label_policy: jiraLabelPolicy\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        736,
+        -64
+      ],
+      "id": "ee5827a3-9344-40a0-a189-9140ec515f72",
+      "name": "Keyword Knowledge Retrieval"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"recommendation\": {\n      \"type\": \"string\"\n    },\n    \"implementation_approach\": {\n      \"type\": \"string\"\n    },\n    \"risk_level\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"Low\",\n        \"Medium\",\n        \"High\"\n      ]\n    },\n    \"needs_human_review\": {\n      \"type\": \"boolean\"\n    },\n    \"human_review_reason\": {\n      \"type\": \"string\"\n    },\n    \"jira_labels\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"maxItems\": 3\n    },\n    \"referenced_documents\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"maxItems\": 3\n    }\n  },\n  \"required\": [\n    \"recommendation\",\n    \"implementation_approach\",\n    \"risk_level\",\n    \"needs_human_review\",\n    \"human_review_reason\",\n    \"jira_labels\",\n    \"referenced_documents\"\n  ],\n  \"additionalProperties\": false\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1184,
+        272
+      ],
+      "id": "67e3649b-6d50-46cb-8d8b-74cbd06bfc25",
+      "name": "Recommendation schema"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ed07671f-48ec-43d7-8815-5d34d4ecb008",
+              "name": "task_title",
+              "value": "={{ $('Normalize Input').first().json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "2b51b0fa-19a5-4d47-a884-dac76278ba98",
+              "name": "department",
+              "value": "={{ $('Normalize Input').first().json.department }}",
+              "type": "string"
+            },
+            {
+              "id": "3738d30f-2427-43f3-91c3-69d78b5910c8",
+              "name": "risk_level",
+              "value": "={{ $('RAG Recommendation').first().json.output.risk_level }}",
+              "type": "string"
+            },
+            {
+              "id": "fc423a46-5ae5-40d6-adeb-7d26a10467d0",
+              "name": "recommendation",
+              "value": "={{ $('RAG Recommendation').first().json.output.recommendation }}",
+              "type": "string"
+            },
+            {
+              "id": "301345e3-8d25-46f2-acf9-9ab1724ccb3c",
+              "name": "implementation_approach",
+              "value": "={{ $('RAG Recommendation').first().json.output.implementation_approach }}",
+              "type": "string"
+            },
+            {
+              "id": "36f0e5da-74fd-432d-b617-17fc4071d6ee",
+              "name": "human_review_reason",
+              "value": "={{ $('RAG Recommendation').first().json.output.human_review_reason }}",
+              "type": "string"
+            },
+            {
+              "id": "3372f264-26c7-4e5e-abe3-e8c6c6748f97",
+              "name": "source_documents",
+              "value": "={{ $('RAG Recommendation').first().json.output.referenced_documents }}",
+              "type": "array"
+            },
+            {
+              "id": "3b9e3344-378f-4d90-bd08-ce7b58212053",
+              "name": "review_status",
+              "value": "={{ $json.review_status }}",
+              "type": "string"
+            },
+            {
+              "id": "2aab8ca5-cf79-4ec1-b5ed-4c4569a39f2f",
+              "name": "review_comment",
+              "value": "={{ $json.review_comment || \"\"}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2528,
+        -48
+      ],
+      "id": "893b0928-6496-475c-a6a9-51e90621b7e7",
+      "name": "Assemble Implementation Proposal"
+    },
+    {
+      "parameters": {
+        "formFields": {
+          "values": [
+            {
+              "fieldType": "html",
+              "html": "<h3>Implementation Request Review</h3>\n\n<p><strong>Task:</strong>\n{{ $('Normalize Input').first().json.title }}\n</p>\n\n<p><strong>Department:</strong>\n{{ $('Normalize Input').first().json.department }}\n</p>\n\n<p><strong>Risk level:</strong>\n{{ $('RAG Recommendation').first().json.output.risk_level }}\n</p>\n\n<p><strong>Recommendation:</strong><br>\n{{ $('RAG Recommendation').first().json.output.recommendation }}\n</p>\n\n<p><strong>Implementation approach:</strong><br>\n{{ $('RAG Recommendation').first().json.output.implementation_approach }}\n</p>\n\n<p><strong>Reason for human review:</strong><br>\n{{ $('RAG Recommendation').first().json.output.human_review_reason }}\n</p>\n"
+            },
+            {
+              "fieldLabel": "Decision",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Approve"
+                  },
+                  {
+                    "option": "Reject"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Review comment",
+              "fieldType": "textarea"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        1776,
+        -288
+      ],
+      "id": "74f4de8d-8a0e-4a90-bc12-812d0f0d8042",
+      "name": "Human approval Form"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.Decision }}",
+                    "rightValue": "=Approve",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "ccf20e74-ffe0-4b7f-a51e-fa56a412de86"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "d26b5bbb-30bd-4bdf-91a6-682c5ab721a3",
+                    "leftValue": "={{ $json.Decision }}",
+                    "rightValue": "Reject",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1984,
+        -288
+      ],
+      "id": "c9eecc81-d04a-420b-8e73-9d70332ccf9a",
+      "name": "Route approval decision"
+    },
+    {
+      "parameters": {
+        "project": {
+          "__rl": true,
+          "value": "SELECT_YOUR_JIRA_PROJECT",
+          "mode": "list",
+          "cachedResultName": "Select your Jira project"
+        },
+        "issueType": {
+          "__rl": true,
+          "value": "SELECT_YOUR_JIRA_ISSUE_TYPE",
+          "mode": "list",
+          "cachedResultName": "Select your Jira issue type"
+        },
+        "summary": "={{ $json.summary }}",
+        "additionalFields": {
+          "description": "={{ $json.description_text }}",
+          "labels": "={{ $json.labels }}"
+        }
+      },
+      "type": "n8n-nodes-base.jira",
+      "typeVersion": 1,
+      "position": [
+        2992,
+        -48
+      ],
+      "id": "df2b04fc-108a-4b05-9611-0d49574f7152",
+      "name": "Create Jira Task"
+    },
+    {
+      "parameters": {
+        "content": "## 1.INTAKE & NORMALIZATION\n\nCollect the automation request and convert the form data into a consistent structure."
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -144,
+        -272
+      ],
+      "typeVersion": 1,
+      "id": "fb32adfa-ab97-4144-8a15-89b7ae926b97",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are evaluating a business process request using relevant internal company knowledge.\n\nYour task is to produce a concise, operational recommendation based only on:\n1. the submitted business request, and\n2. the retrieved internal knowledge provided below.\n\nDo not invent company facts, policies, tools, previous projects, data sources, technical implementation details, timelines, or metrics that are not explicitly supported by the retrieved internal knowledge.\n\nIf the internal knowledge does not specify how the solution should be implemented, keep the implementation approach high-level and describe only the next sensible step.\n\nKeep the response concise.\nEach text field should be no more than 1–2 short sentences.\nDo not provide a long analysis.\nDo not use markdown.\nDo not add extra fields.\n\nBusiness request:\n\nTitle:\n{{ $json.request.title }}\n\nDescription:\n{{ $json.request.description }}\n\nDepartment:\n{{ $json.request.department }}\n\nApproved Jira label policy:\n\n{{ JSON.stringify($json.jira_label_policy) }}\n\nRelevant internal knowledge:\n\n{{ JSON.stringify($json.retrieved_knowledge) }}\n\nEvaluate the request and determine:\n\n- recommendation: what the company should do next\n- implementation_approach: a short, high-level practical approach supported by the retrieved knowledge\n- risk_level: Low, Medium, or High\n- needs_human_review: true or false\n- human_review_reason: why human review is or is not required\n- jira_labels: choose up to 3 appropriate Jira labels using only values from the approved Jira label policy\n- referenced_documents: the titles of the internal documents that materially influenced the recommendation\n\nHuman review should normally be required when one or more of the following apply:\n- the automation directly affects customers\n- the risk level is significant\n- internal guidelines require approval or oversight\n- the proposed action is ambiguous, sensitive, or difficult to reverse\n- AI decisions could cause meaningful operational errors\n\nIf none of these conditions apply and the retrieved knowledge supports safe automated handling, needs_human_review may be false.\n\nIf the retrieved knowledge is insufficient to support a specific implementation detail, do not guess. Keep the recommendation general.\n\nFor jira_labels:\n- use only labels explicitly present in the approved Jira label policy\n- do not invent new labels\n- choose labels that best represent the department, type of work, and current stage\n\nReturn only the required structured output.",
+        "hasOutputParser": true,
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1040,
+        -64
+      ],
+      "id": "84c38118-85eb-4aff-a9e4-45a23f7ea408",
+      "name": "RAG Recommendation"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4291b0aa-ad38-4b87-990b-8781bbe02288",
+              "name": "review_status",
+              "value": "Pending human review",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1584,
+        -288
+      ],
+      "id": "054ccfcf-eca9-427e-83a8-2a110b8c47d7",
+      "name": "Set Review Status: Pending"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "49b6700c-b358-4d1c-a071-d5241728db39",
+              "name": "review_status",
+              "value": "No human review required",
+              "type": "string"
+            },
+            {
+              "id": "67bacf40-e466-4857-abad-c1a647fc6678",
+              "name": "review_comment",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2240,
+        -48
+      ],
+      "id": "de94437f-cf3b-4911-a0e4-0d4481476ab5",
+      "name": "Set Review Status: No Review Required"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "SELECT_YOUR_DATA_TABLE",
+          "mode": "list",
+          "cachedResultName": "automation_request_history"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "request_title": "={{ $('Normalize Input').first().json.title }}",
+            "department": "={{ $('Normalize Input').first().json.department }}",
+            "submitted_at": "={{ $('Normalize Input').first().json.submitted_at }}\n",
+            "risk_level": "={{ $('RAG Recommendation').first().json.output.risk_level }}",
+            "review_status": "={{$('Assemble Implementation Proposal').first().json.review_status}}",
+            "review_comment": "={{$('Assemble Implementation Proposal').first().json.review_comment}}",
+            "jira_issue_key": "={{ $json.key }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "request_title",
+              "displayName": "request_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "department",
+              "displayName": "department",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "risk_level",
+              "displayName": "risk_level",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "submitted_at",
+              "displayName": "submitted_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "review_status",
+              "displayName": "review_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "review_comment",
+              "displayName": "review_comment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "jira_issue_key",
+              "displayName": "jira_issue_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3200,
+        -48
+      ],
+      "id": "6241db8a-0da4-4b66-a56e-70fe3406199a",
+      "name": "Log Created Request"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9b5a897f-15dd-4700-8e8e-7d49a551597f",
+              "name": "review_status",
+              "value": "Rejected",
+              "type": "string"
+            },
+            {
+              "id": "e556c8af-a591-4f94-bf25-51d58a6ac156",
+              "name": "review_comment",
+              "value": "={{ $json[\"Review comment\"] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2240,
+        272
+      ],
+      "id": "0f71df51-35e4-4beb-bf5a-31ab1dea5eee",
+      "name": "Set Review Status: Rejected"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "SELECT_YOUR_DATA_TABLE",
+          "mode": "list",
+          "cachedResultName": "automation_request_history"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "request_title": "={{ $('Normalize Input').first().json.title }}",
+            "department": "={{ $('Normalize Input').first().json.department }}",
+            "submitted_at": "={{ $('Normalize Input').first().json.submitted_at }}\n",
+            "risk_level": "={{ $('RAG Recommendation').first().json.output.risk_level }}",
+            "review_status": "={{$json.review_status}}",
+            "review_comment": "={{ $json.review_comment }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "request_title",
+              "displayName": "request_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "department",
+              "displayName": "department",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "risk_level",
+              "displayName": "risk_level",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "submitted_at",
+              "displayName": "submitted_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "review_status",
+              "displayName": "review_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "review_comment",
+              "displayName": "review_comment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "jira_issue_key",
+              "displayName": "jira_issue_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3200,
+        272
+      ],
+      "id": "59df1bdd-5195-453a-8709-2c65ae7a5f5a",
+      "name": "Log Rejected Request"
+    },
+    {
+      "parameters": {
+        "content": "## 2. Knowledge retrieval \nRetrieve internal guidance (pseudo-content used here)"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        304,
+        -272
+      ],
+      "typeVersion": 1,
+      "id": "848db461-b68a-41e3-8bba-26d038ca89bd",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## 3. RAG\ngenerate a grounded recommendation;  risk assess"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        864,
+        -272
+      ],
+      "typeVersion": 1,
+      "id": "6534fb74-f5a9-4d3d-b66c-7edbfa687238",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## 4. Human Review & Decision\nRoute higher-risk requests for approval; rejected requests are logged & stopped"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1584,
+        -480
+      ],
+      "typeVersion": 1,
+      "id": "f1f2e899-4245-4e76-bac9-a97c1e932cdf",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## 5. Implementation handoff & audit\nCreate Jira issues where applicable & log the request details "
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2208,
+        -496
+      ],
+      "typeVersion": 1,
+      "id": "854f11c8-de0c-4d5f-abc3-15c343c44462",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9b5a897f-15dd-4700-8e8e-7d49a551597f",
+              "name": "review_status",
+              "value": "Approved",
+              "type": "string"
+            },
+            {
+              "id": "e556c8af-a591-4f94-bf25-51d58a6ac156",
+              "name": "review_comment",
+              "value": "={{ $json[\"Review comment\"] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2240,
+        -304
+      ],
+      "id": "2c3a188d-4b69-4951-9776-8138e7720103",
+      "name": "Set Review Status: Approved"
+    },
+    {
+      "parameters": {
+        "jsCode": "const implementation =\n  $('Assemble Implementation Proposal').first().json;\n\nconst rag =\n  $('RAG Recommendation').first().json.output;\n\nconst sources = implementation.source_documents || [];\n\nconst descriptionText = `\n*Recommendation:*\n${implementation.recommendation}\n\n*Implementation approach:*\n${implementation.implementation_approach}\n\n*Review status:*\n${implementation.review_status}\n\n${implementation.review_comment\n  ? `*Reviewer note:*\\n${implementation.review_comment}`\n  : \"\"}\n\n*Internal sources consulted:*\n${sources.map(source => `- ${source}`).join('\\n')}\n`.trim();\n\nreturn {\n  summary: implementation.task_title,\n\n  labels: rag.jira_labels || [],\n\n  description_text: descriptionText\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2768,
+        -48
+      ],
+      "id": "15519d9a-49a5-4bfb-ab4e-576a780670f4",
+      "name": "Build Jira Issue Payload"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Normalize Input": {
+      "main": [
+        [
+          {
+            "node": "Mock Internal Knowledge base",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Business Decision": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "RAG Recommendation",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Automation Request Form": {
+      "main": [
+        [
+          {
+            "node": "Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs human review?": {
+      "main": [
+        [
+          {
+            "node": "Set Review Status: Pending",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Review Status: No Review Required",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mock Internal Knowledge base": {
+      "main": [
+        [
+          {
+            "node": "Keyword Knowledge Retrieval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keyword Knowledge Retrieval": {
+      "main": [
+        [
+          {
+            "node": "RAG Recommendation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recommendation schema": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "RAG Recommendation",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble Implementation Proposal": {
+      "main": [
+        [
+          {
+            "node": "Build Jira Issue Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Human approval Form": {
+      "main": [
+        [
+          {
+            "node": "Route approval decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route approval decision": {
+      "main": [
+        [
+          {
+            "node": "Set Review Status: Approved",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Review Status: Rejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RAG Recommendation": {
+      "main": [
+        [
+          {
+            "node": "Needs human review?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Jira Task": {
+      "main": [
+        [
+          {
+            "node": "Log Created Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Review Status: Pending": {
+      "main": [
+        [
+          {
+            "node": "Human approval Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Review Status: No Review Required": {
+      "main": [
+        [
+          {
+            "node": "Assemble Implementation Proposal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Review Status: Rejected": {
+      "main": [
+        [
+          {
+            "node": "Log Rejected Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Review Status: Approved": {
+      "main": [
+        [
+          {
+            "node": "Assemble Implementation Proposal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Jira Issue Payload": {
+      "main": [
+        [
+          {
+            "node": "Create Jira Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "nodeGroups": [],
+  "tags": []
+}
